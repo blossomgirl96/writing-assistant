@@ -1,5 +1,7 @@
 # LinkedIn Writing Assistant
 
+> **Notes:** 2 sided UX for input and output. Fail
+
 A personal writing tool that transforms raw notes into LinkedIn posts in your voice. Paste bullet points or a rough narrative, get a post back, refine iteratively until it's right.
 
 Built with Next.js, FastAPI, and the Claude API.
