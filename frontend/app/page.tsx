@@ -1,73 +1,124 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const STORAGE_KEY = "linkedin-assistant-session";
 
-type Status = "idle" | "generating" | "refining" | "copied";
+type Message = {
+  id: string;
+  type: "user" | "ai";
+  content: string;
+  label: string;
+  timestamp: number;
+};
 
 export default function Home() {
-  const [notes, setNotes] = useState("");
-  const [angle, setAngle] = useState("");
-  const [post, setPost] = useState("");
-  const [refineInstruction, setRefineInstruction] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const refineRef = useRef<HTMLInputElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const generate = async () => {
-    if (!notes.trim()) return;
-    setStatus("generating");
-    setError("");
+  useEffect(() => {
     try {
-      const res = await fetch(`${API_BASE}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes, angle }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setPost(data.post);
-      setTimeout(() => refineRef.current?.focus(), 100);
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {
+      // ignore parse errors
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages, hydrated]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  const pushMessage = (msg: Omit<Message, "id" | "timestamp">) => {
+    const full: Message = { ...msg, id: crypto.randomUUID(), timestamp: Date.now() };
+    setMessages((prev) => [...prev, full]);
+    return full;
+  };
+
+  const submit = async () => {
+    if (!input.trim() || isLoading) return;
+    setError("");
+
+    const trimmedInput = input.trim();
+    const snap = messages;
+    const aiSnap = snap.filter((m) => m.type === "ai");
+    const isFirst = aiSnap.length === 0;
+    const nextVersion = aiSnap.length + 1;
+
+    pushMessage({
+      type: "user",
+      content: trimmedInput,
+      label: isFirst ? "Your notes" : "Refinement",
+    });
+
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      let post: string;
+
+      if (isFirst) {
+        const res = await fetch(`${API_BASE}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes: trimmedInput, angle: "" }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        ({ post } = await res.json());
+      } else {
+        const lastAi = [...snap].reverse().find((m) => m.type === "ai");
+        const firstUser = snap.find((m) => m.type === "user");
+        const res = await fetch(`${API_BASE}/refine`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            post: lastAi?.content ?? "",
+            instruction: trimmedInput,
+            notes: firstUser?.content ?? "",
+          }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        ({ post } = await res.json());
+      }
+
+      pushMessage({ type: "ai", content: post, label: `Post v${nextVersion}` });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
-      setStatus("idle");
+      setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 80);
     }
   };
 
-  const refine = async () => {
-    if (!refineInstruction.trim() || !post.trim()) return;
-    setStatus("refining");
+  const copy = async (id: string, text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
+  const newPost = () => {
+    setMessages([]);
+    setInput("");
     setError("");
-    try {
-      const res = await fetch(`${API_BASE}/refine`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ post, instruction: refineInstruction, notes }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setPost(data.post);
-      setRefineInstruction("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setStatus("idle");
-    }
+    setTimeout(() => inputRef.current?.focus(), 80);
   };
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(post);
-    setStatus("copied");
-    setTimeout(() => setStatus("idle"), 1500);
-  };
+  const hasPost = messages.some((m) => m.type === "ai");
 
-  const isGenerating = status === "generating";
-  const isRefining = status === "refining";
-  const isCopied = status === "copied";
-  const charCount = post.length;
-  const overLimit = charCount > 3000;
+  if (!hydrated) return null;
 
   return (
     <main className="h-screen flex flex-col bg-stone-50 font-sans">
@@ -79,107 +130,127 @@ export default function Home() {
           </h1>
           <p className="text-xs text-stone-400 mt-0.5">your voice, less friction</p>
         </div>
+        {messages.length > 0 && (
+          <button
+            onClick={newPost}
+            className="text-xs text-stone-500 hover:text-stone-800 border border-stone-200 rounded-md px-3 py-1.5 transition-colors bg-white cursor-pointer"
+          >
+            New post
+          </button>
+        )}
       </header>
 
-      {/* Body */}
-      <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-        {/* Left: Input */}
-        <div className="flex flex-col border-r border-stone-200 overflow-hidden">
-          <div className="px-6 pt-5 pb-3 shrink-0">
-            <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-              Your notes
-            </label>
+      {/* Chat history */}
+      <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-6">
+        {messages.length === 0 && !isLoading && (
+          <div className="flex-1 flex items-center justify-center min-h-[200px]">
+            <p className="text-sm text-stone-300 text-center max-w-xs leading-relaxed">
+              Paste your notes below.<br />
+              Each version stays visible — nothing gets lost.
+            </p>
           </div>
-          <textarea
-            className="flex-1 px-6 pb-4 text-sm text-stone-800 placeholder:text-stone-300 resize-none focus:outline-none bg-transparent leading-relaxed"
-            placeholder={`Paste anything — rough notes, bullet points, a few sentences.\n\nExamples:\n• Attended X conference, saw talk by Y on Z, key insight was...\n• Read the HBR piece on AI productivity. My take: it misses the expertise angle...\n• Used Lovable to build a site this weekend. Here's what actually happened...`}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") generate();
-            }}
-          />
-          <div className="px-6 pb-6 flex flex-col gap-3 shrink-0 border-t border-stone-100 pt-4">
-            <input
-              className="text-sm text-stone-700 placeholder:text-stone-300 border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-stone-300 bg-white"
-              placeholder="Angle / focus (optional) — e.g. 'lean into the skepticism'"
-              value={angle}
-              onChange={(e) => setAngle(e.target.value)}
-            />
-            <button
-              onClick={generate}
-              disabled={!notes.trim() || isGenerating}
-              className="w-full bg-stone-900 hover:bg-stone-700 disabled:bg-stone-200 disabled:text-stone-400 text-white text-sm font-medium rounded-lg py-3 transition-colors cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isGenerating ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Spinner /> Generating…
-                </span>
-              ) : (
-                "Generate  ⌘↵"
-              )}
-            </button>
-          </div>
-        </div>
+        )}
 
-        {/* Right: Output */}
-        <div className="flex flex-col overflow-hidden">
-          <div className="px-6 pt-5 pb-3 shrink-0 flex items-center justify-between">
-            <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-              Generated post
-            </label>
-            {post && (
-              <div className="flex items-center gap-3">
+        {messages.map((msg) => (
+          <div key={msg.id} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-stone-400 uppercase tracking-wider shrink-0">
+                {msg.label}
+              </span>
+              <div className="flex-1 h-px bg-stone-100" />
+              {msg.type === "ai" && (
                 <span
-                  className={`text-xs tabular-nums ${overLimit ? "text-red-500" : "text-stone-400"}`}
+                  className={`text-xs tabular-nums shrink-0 ${
+                    msg.content.length > 3000 ? "text-red-400" : "text-stone-300"
+                  }`}
                 >
-                  {charCount.toLocaleString()} / 3,000
+                  {msg.content.length.toLocaleString()} / 3,000
                 </span>
+              )}
+            </div>
+
+            <div
+              className={`rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.type === "user"
+                  ? "bg-stone-100 text-stone-600"
+                  : "bg-white border border-stone-200 text-stone-900"
+              }`}
+            >
+              {msg.content}
+            </div>
+
+            {msg.type === "ai" && (
+              <div className="flex justify-end">
                 <button
-                  onClick={copy}
-                  className="text-xs text-stone-500 hover:text-stone-800 border border-stone-200 rounded-md px-2.5 py-1 transition-colors bg-white cursor-pointer"
+                  onClick={() => copy(msg.id, msg.content)}
+                  className="text-xs text-stone-400 hover:text-stone-700 border border-stone-200 rounded-md px-2.5 py-1 transition-colors bg-white cursor-pointer"
                 >
-                  {isCopied ? "Copied ✓" : "Copy"}
+                  {copiedId === msg.id ? "Copied ✓" : "Copy"}
                 </button>
               </div>
             )}
           </div>
+        ))}
 
-          <textarea
-            className="flex-1 px-6 pb-4 text-sm text-stone-800 placeholder:text-stone-300 resize-none focus:outline-none bg-transparent leading-relaxed"
-            placeholder="Your post will appear here. You can edit it directly once generated."
-            value={post}
-            onChange={(e) => setPost(e.target.value)}
-          />
-
-          <div className="px-6 pb-6 flex flex-col gap-2 shrink-0 border-t border-stone-100 pt-4">
-            {error && <p className="text-xs text-red-500 pb-1">{error}</p>}
-            <div className="flex gap-2">
-              <input
-                ref={refineRef}
-                className="flex-1 text-sm text-stone-700 placeholder:text-stone-300 border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-stone-300 bg-white disabled:bg-stone-50 disabled:text-stone-300"
-                placeholder={
-                  post
-                    ? "Refine: e.g. 'make the opener less structured' or 'cut the last paragraph'"
-                    : "Generate a post first"
-                }
-                value={refineInstruction}
-                disabled={!post}
-                onChange={(e) => setRefineInstruction(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && refineInstruction.trim() && !isRefining)
-                    refine();
-                }}
-              />
-              <button
-                onClick={refine}
-                disabled={!refineInstruction.trim() || !post || isRefining}
-                className="bg-stone-100 hover:bg-stone-200 disabled:bg-stone-50 disabled:text-stone-300 text-stone-700 text-sm font-medium rounded-lg px-4 transition-colors whitespace-nowrap cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isRefining ? <Spinner /> : "Refine ↵"}
-              </button>
+        {isLoading && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-stone-400 uppercase tracking-wider shrink-0">
+                {hasPost
+                  ? `Post v${messages.filter((m) => m.type === "ai").length + 1}`
+                  : "Post v1"}
+              </span>
+              <div className="flex-1 h-px bg-stone-100" />
+            </div>
+            <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-stone-400">
+              <Spinner />
+              {hasPost ? "Refining…" : "Generating…"}
             </div>
           </div>
+        )}
+
+        {error && <p className="text-xs text-red-500 px-1">{error}</p>}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-stone-200 px-8 pt-4 pb-6 shrink-0 bg-white flex flex-col gap-3">
+        <div className="flex gap-3 items-end">
+          <textarea
+            ref={inputRef}
+            rows={3}
+            className="flex-1 text-sm text-stone-800 placeholder:text-stone-300 border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-stone-300 bg-stone-50 resize-none leading-relaxed"
+            placeholder={
+              hasPost
+                ? "Refine: e.g. 'make the opener less structured' or 'cut the last paragraph'"
+                : "Paste your notes — bullet points, rough narrative, a few sentences of context"
+            }
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          <button
+            onClick={submit}
+            disabled={!input.trim() || isLoading}
+            className="bg-stone-900 hover:bg-stone-700 disabled:bg-stone-200 disabled:text-stone-400 text-white text-sm font-medium rounded-xl px-5 py-3 transition-colors cursor-pointer disabled:cursor-not-allowed whitespace-nowrap self-end"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <Spinner />
+                {hasPost ? "Refining…" : "Generating…"}
+              </span>
+            ) : hasPost ? (
+              "Refine ⌘↵"
+            ) : (
+              "Generate ⌘↵"
+            )}
+          </button>
         </div>
       </div>
     </main>
@@ -194,14 +265,7 @@ function Spinner() {
       fill="none"
       viewBox="0 0 24 24"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path
         className="opacity-75"
         fill="currentColor"

@@ -18,14 +18,14 @@ BACKEND_PID=$!
 echo "Backend PID: $BACKEND_PID"
 
 # Frontend
-echo "Starting Next.js frontend on :3000..."
+echo "Starting Next.js frontend on :3002..."
 cd "$ROOT/frontend"
-npm run dev &
+npm run dev -- --port 3002 2>&1 | grep -v MallocStackLogging &
 FRONTEND_PID=$!
 echo "Frontend PID: $FRONTEND_PID"
 
 echo ""
-echo "App running at http://localhost:3000"
+echo "App running at http://localhost:3002"
 echo "Press Ctrl+C to stop both servers."
 
 trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit" INT TERM
