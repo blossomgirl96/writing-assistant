@@ -1,6 +1,9 @@
 # macOS
 .DS_Store
 
+# Private
+samples.md
+
 # Backend
 backend/.env
 backend/.venv/
