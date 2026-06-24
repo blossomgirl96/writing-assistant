@@ -121,19 +121,30 @@ export default function Home() {
   if (!hydrated) return null;
 
   return (
-    <main className="h-screen flex flex-col bg-stone-50 font-sans">
+    <main className="h-screen flex flex-col" style={{ background: "#FAF8F5", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       {/* Header */}
-      <header className="px-8 py-5 border-b border-stone-200 flex items-center justify-between shrink-0">
+      <header
+        className="px-8 py-4 flex items-center justify-between shrink-0 border-b"
+        style={{ background: "#FAF8F5", borderColor: "#E5DDD4" }}
+      >
         <div>
-          <h1 className="text-base font-semibold text-stone-900 tracking-tight">
+          <span className="text-sm font-medium" style={{ color: "#1A1714" }}>
             LinkedIn Writing Assistant
-          </h1>
-          <p className="text-xs text-stone-400 mt-0.5">your voice, less friction</p>
+          </span>
         </div>
         {messages.length > 0 && (
           <button
             onClick={newPost}
-            className="text-xs text-stone-500 hover:text-stone-800 border border-stone-200 rounded-md px-3 py-1.5 transition-colors bg-white cursor-pointer"
+            className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
+            style={{ color: "#6B6459", borderColor: "#D9D0C6", background: "transparent" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#1A1714";
+              e.currentTarget.style.borderColor = "#A89E94";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "#6B6459";
+              e.currentTarget.style.borderColor = "#D9D0C6";
+            }}
           >
             New post
           </button>
@@ -141,51 +152,82 @@ export default function Home() {
       </header>
 
       {/* Chat history */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-6">
+      <div
+        className="flex-1 overflow-y-auto py-10 flex flex-col gap-10"
+        style={{
+          paddingLeft: "max(2rem, calc((100% - 660px) / 2))",
+          paddingRight: "max(2rem, calc((100% - 660px) / 2))",
+        }}
+      >
         {messages.length === 0 && !isLoading && (
-          <div className="flex-1 flex items-center justify-center min-h-[200px]">
-            <p className="text-sm text-stone-300 text-center max-w-xs leading-relaxed">
-              Paste your notes below.<br />
-              Each version stays visible — nothing gets lost.
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[260px]">
+            <p className="text-sm text-center" style={{ color: "#B0A89E", lineHeight: "1.7" }}>
+              Paste your rough notes below.
+              <br />
+              Every version stays visible.
             </p>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className="flex flex-col gap-1.5">
+          <div key={msg.id} className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-stone-400 uppercase tracking-wider shrink-0">
+              <span
+                className="text-xs uppercase tracking-widest shrink-0"
+                style={{
+                  color: msg.type === "ai" ? "#7C6F5E" : "#B0A89E",
+                  letterSpacing: "0.08em",
+                  fontWeight: 600,
+                }}
+              >
                 {msg.label}
               </span>
-              <div className="flex-1 h-px bg-stone-100" />
+              <div className="flex-1 h-px" style={{ background: "#E5DDD4" }} />
               {msg.type === "ai" && (
                 <span
-                  className={`text-xs tabular-nums shrink-0 ${
-                    msg.content.length > 3000 ? "text-red-400" : "text-stone-300"
-                  }`}
+                  className="text-xs tabular-nums shrink-0"
+                  style={{ color: msg.content.length > 3000 ? "#C0392B" : "#C4BAB0" }}
                 >
                   {msg.content.length.toLocaleString()} / 3,000
                 </span>
               )}
             </div>
 
-            <div
-              className={`rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.type === "user"
-                  ? "bg-stone-100 text-stone-600"
-                  : "bg-white border border-stone-200 text-stone-900"
-              }`}
-            >
-              {msg.content}
-            </div>
+            {msg.type === "user" ? (
+              <div
+                className="text-sm leading-relaxed whitespace-pre-wrap px-4 py-3 rounded"
+                style={{ background: "#F0EBE4", color: "#57534E" }}
+              >
+                {msg.content}
+              </div>
+            ) : (
+              <div
+                className="whitespace-pre-wrap px-5 py-5 rounded border"
+                style={{
+                  background: "#FFFFFF",
+                  color: "#1A1714",
+                  fontSize: "15px",
+                  lineHeight: "1.8",
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  borderColor: "#E5DDD4",
+                }}
+              >
+                {msg.content}
+              </div>
+            )}
 
             {msg.type === "ai" && (
               <div className="flex justify-end">
                 <button
                   onClick={() => copy(msg.id, msg.content)}
-                  className="text-xs text-stone-400 hover:text-stone-700 border border-stone-200 rounded-md px-2.5 py-1 transition-colors bg-white cursor-pointer"
+                  className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
+                  style={{
+                    color: copiedId === msg.id ? "#1A1714" : "#A89E94",
+                    borderColor: copiedId === msg.id ? "#A89E94" : "#D9D0C6",
+                    background: "transparent",
+                  }}
                 >
-                  {copiedId === msg.id ? "Copied ✓" : "Copy"}
+                  {copiedId === msg.id ? "Copied" : "Copy"}
                 </button>
               </div>
             )}
@@ -193,41 +235,75 @@ export default function Home() {
         ))}
 
         {isLoading && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-stone-400 uppercase tracking-wider shrink-0">
-                {hasPost
-                  ? `Post v${messages.filter((m) => m.type === "ai").length + 1}`
-                  : "Post v1"}
+              <span
+                className="text-xs uppercase tracking-widest shrink-0"
+                style={{ color: "#7C6F5E", letterSpacing: "0.08em", fontWeight: 600 }}
+              >
+                {hasPost ? `Post v${messages.filter((m) => m.type === "ai").length + 1}` : "Post v1"}
               </span>
-              <div className="flex-1 h-px bg-stone-100" />
+              <div className="flex-1 h-px" style={{ background: "#E5DDD4" }} />
             </div>
-            <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-stone-400">
+            <div
+              className="px-5 py-5 flex items-center gap-3 text-sm rounded border"
+              style={{
+                background: "#FFFFFF",
+                borderColor: "#E5DDD4",
+                color: "#B0A89E",
+                fontFamily: "Georgia, 'Times New Roman', serif",
+              }}
+            >
               <Spinner />
-              {hasPost ? "Refining…" : "Generating…"}
+              <span>{hasPost ? "Refining…" : "Drafting…"}</span>
             </div>
           </div>
         )}
 
-        {error && <p className="text-xs text-red-500 px-1">{error}</p>}
+        {error && (
+          <p className="text-xs px-1" style={{ color: "#C0392B" }}>
+            {error}
+          </p>
+        )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t border-stone-200 px-8 pt-4 pb-6 shrink-0 bg-white flex flex-col gap-3">
-        <div className="flex gap-3 items-end">
+      {/* Input bar */}
+      <div
+        className="shrink-0 border-t"
+        style={{ background: "#FAF8F5", borderColor: "#E5DDD4" }}
+      >
+        <div
+          className="py-4 flex gap-3 items-center"
+          style={{
+            paddingLeft: "max(2rem, calc((100% - 660px) / 2))",
+            paddingRight: "max(2rem, calc((100% - 660px) / 2))",
+          }}
+        >
           <textarea
             ref={inputRef}
-            rows={3}
-            className="flex-1 text-sm text-stone-800 placeholder:text-stone-300 border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-stone-300 bg-stone-50 resize-none leading-relaxed"
+            rows={1}
+            className="flex-1 text-sm resize-none leading-relaxed rounded px-4 py-3 border outline-none transition-colors"
+            style={{
+              background: "#FFFFFF",
+              color: "#1A1714",
+              borderColor: "#D9D0C6",
+              fontFamily: "inherit",
+            }}
             placeholder={
               hasPost
                 ? "Refine: e.g. 'make the opener less structured' or 'cut the last paragraph'"
-                : "Paste your notes — bullet points, rough narrative, a few sentences of context"
+                : "Paste your rough notes"
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = "#7C6F5E";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = "#D9D0C6";
+            }}
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
                 e.preventDefault();
@@ -238,7 +314,11 @@ export default function Home() {
           <button
             onClick={submit}
             disabled={!input.trim() || isLoading}
-            className="bg-stone-900 hover:bg-stone-700 disabled:bg-stone-200 disabled:text-stone-400 text-white text-sm font-medium rounded-xl px-5 py-3 transition-colors cursor-pointer disabled:cursor-not-allowed whitespace-nowrap self-end"
+            className="text-sm font-medium rounded px-5 py-3 transition-colors cursor-pointer whitespace-nowrap disabled:cursor-not-allowed"
+            style={{
+              background: !input.trim() || isLoading ? "#E5DDD4" : "#1A1714",
+              color: !input.trim() || isLoading ? "#A89E94" : "#FAF8F5",
+            }}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -260,7 +340,7 @@ export default function Home() {
 function Spinner() {
   return (
     <svg
-      className="animate-spin h-4 w-4 inline-block"
+      className="animate-spin h-4 w-4 inline-block shrink-0"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
