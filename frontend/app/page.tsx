@@ -5,6 +5,9 @@ import { useState, useRef, useEffect } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const STORAGE_KEY = "linkedin-assistant-session";
 
+const SERIF = "var(--font-serif), Georgia, 'Times New Roman', serif";
+const SANS = "var(--font-geist-sans), system-ui, -apple-system, sans-serif";
+
 type Message = {
   id: string;
   type: "user" | "ai";
@@ -94,7 +97,7 @@ export default function Home() {
         ({ post } = await res.json());
       }
 
-      pushMessage({ type: "ai", content: post, label: `Post v${nextVersion}` });
+      pushMessage({ type: "ai", content: post, label: `Draft v${nextVersion}` });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -109,7 +112,7 @@ export default function Home() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const newPost = () => {
+  const newMusing = () => {
     setMessages([]);
     setInput("");
     setError("");
@@ -117,151 +120,159 @@ export default function Home() {
   };
 
   const hasPost = messages.some((m) => m.type === "ai");
+  const isEmpty = messages.length === 0 && !isLoading;
 
   if (!hydrated) return null;
 
+  const gutter = {
+    paddingLeft: "max(2rem, calc((100% - 760px) / 2))",
+    paddingRight: "max(2rem, calc((100% - 760px) / 2))",
+  };
+
   return (
-    <main className="h-screen flex flex-col" style={{ background: "#FAF8F5", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <main className="h-screen flex flex-col" style={{ background: "#FAF8F5", fontFamily: SANS }}>
       {/* Header */}
       <header
         className="px-8 py-4 flex items-center justify-between shrink-0 border-b"
-        style={{ background: "#FAF8F5", borderColor: "#E5DDD4" }}
+        style={{ background: "#FAF8F5", borderColor: "#E7E0D7" }}
       >
-        <div>
-          <span className="text-sm font-medium" style={{ color: "#1A1714" }}>
-            LinkedIn Writing Assistant
+        <div className="flex items-center gap-3">
+          <span
+            className="leading-none"
+            style={{ fontFamily: SERIF, fontSize: "30px", fontWeight: 600, color: "#6B2333" }}
+          >
+            M
+          </span>
+          <span className="flex flex-col leading-tight" style={{ fontFamily: SERIF }}>
+            <span style={{ fontSize: "15px", color: "#2B2620" }}>Meera&rsquo;s</span>
+            <span style={{ fontSize: "15px", fontStyle: "italic", color: "#8A7E6F" }}>musings</span>
           </span>
         </div>
-        {messages.length > 0 && (
-          <button
-            onClick={newPost}
-            className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
-            style={{ color: "#6B6459", borderColor: "#D9D0C6", background: "transparent" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#1A1714";
-              e.currentTarget.style.borderColor = "#A89E94";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#6B6459";
-              e.currentTarget.style.borderColor = "#D9D0C6";
-            }}
-          >
-            New post
-          </button>
-        )}
+        <button
+          onClick={newMusing}
+          className="text-sm px-4 py-2 rounded-md cursor-pointer border transition-colors flex items-center gap-1.5"
+          style={{ color: "#5C5247", borderColor: "#D9D0C6", background: "transparent" }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "#1A1714";
+            e.currentTarget.style.borderColor = "#A89E94";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "#5C5247";
+            e.currentTarget.style.borderColor = "#D9D0C6";
+          }}
+        >
+          <span style={{ fontSize: "16px", lineHeight: 1 }}>+</span> New musing
+        </button>
       </header>
 
-      {/* Chat history */}
-      <div
-        className="flex-1 overflow-y-auto py-10 flex flex-col gap-10"
-        style={{
-          paddingLeft: "max(2rem, calc((100% - 660px) / 2))",
-          paddingRight: "max(2rem, calc((100% - 660px) / 2))",
-        }}
-      >
-        {messages.length === 0 && !isLoading && (
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[260px]">
-            <p className="text-sm text-center" style={{ color: "#B0A89E", lineHeight: "1.7" }}>
-              Paste your rough notes below.
-              <br />
-              Every version stays visible.
+      {/* Conversation */}
+      <div className="flex-1 overflow-y-auto py-12 flex flex-col gap-6" style={gutter}>
+        {isEmpty && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[320px]">
+            <h1 style={{ fontFamily: SERIF, fontSize: "44px", color: "#2B2620", lineHeight: 1.1 }}>
+              What&rsquo;s on your mind?
+            </h1>
+            <p
+              className="mt-6 max-w-md"
+              style={{ fontFamily: SERIF, fontSize: "18px", color: "#9C8F81", lineHeight: 1.7 }}
+            >
+              Paste the rough version below &mdash; bullet points, a half-thought, the mess. Every
+              draft stays on the page.
             </p>
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span
-                className="text-xs uppercase tracking-widest shrink-0"
-                style={{
-                  color: msg.type === "ai" ? "#7C6F5E" : "#B0A89E",
-                  letterSpacing: "0.08em",
-                  fontWeight: 600,
-                }}
-              >
-                {msg.label}
-              </span>
-              <div className="flex-1 h-px" style={{ background: "#E5DDD4" }} />
-              {msg.type === "ai" && (
-                <span
-                  className="text-xs tabular-nums shrink-0"
-                  style={{ color: msg.content.length > 3000 ? "#C0392B" : "#C4BAB0" }}
-                >
-                  {msg.content.length.toLocaleString()} / 3,000
-                </span>
-              )}
-            </div>
+        {messages.map((msg) => {
+          const isUser = msg.type === "user";
+          const over = msg.content.length > 3000;
+          return (
+            <div
+              key={msg.id}
+              className="flex flex-col gap-2"
+              style={{ alignItems: isUser ? "flex-end" : "flex-start" }}
+            >
+              <SenderTag who={isUser ? "Meera" : "Writie"} />
 
-            {msg.type === "user" ? (
-              <div
-                className="text-sm leading-relaxed whitespace-pre-wrap px-4 py-3 rounded"
-                style={{ background: "#F0EBE4", color: "#57534E" }}
-              >
-                {msg.content}
-              </div>
-            ) : (
-              <div
-                className="whitespace-pre-wrap px-5 py-5 rounded border"
-                style={{
-                  background: "#FFFFFF",
-                  color: "#1A1714",
-                  fontSize: "15px",
-                  lineHeight: "1.8",
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  borderColor: "#E5DDD4",
-                }}
-              >
-                {msg.content}
-              </div>
-            )}
-
-            {msg.type === "ai" && (
-              <div className="flex justify-end">
-                <button
-                  onClick={() => copy(msg.id, msg.content)}
-                  className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
+              {isUser ? (
+                <div
+                  className="whitespace-pre-wrap px-5 py-4"
                   style={{
-                    color: copiedId === msg.id ? "#1A1714" : "#A89E94",
-                    borderColor: copiedId === msg.id ? "#A89E94" : "#D9D0C6",
-                    background: "transparent",
+                    background: "#ECE4DA",
+                    color: "#7E7468",
+                    fontSize: "16px",
+                    lineHeight: 1.7,
+                    maxWidth: "82%",
+                    borderRadius: "16px",
+                    borderTopRightRadius: "5px",
                   }}
                 >
-                  {copiedId === msg.id ? "Copied" : "Copy"}
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+                  {msg.content}
+                </div>
+              ) : (
+                <div
+                  className="border px-6 py-5"
+                  style={{
+                    background: "#FFFFFF",
+                    borderColor: "#E7E0D7",
+                    maxWidth: "88%",
+                    borderRadius: "16px",
+                    borderTopLeftRadius: "5px",
+                  }}
+                >
+                  <div
+                    className="whitespace-pre-wrap"
+                    style={{ color: "#3A332B", fontSize: "16px", lineHeight: 1.75, fontFamily: SERIF }}
+                  >
+                    {msg.content}
+                  </div>
+                  <div className="flex items-center justify-between gap-4 mt-4">
+                    <span
+                      className="text-xs tabular-nums"
+                      style={{ color: over ? "#C0392B" : "#C4BAB0" }}
+                    >
+                      {msg.content.length.toLocaleString()} / 3,000
+                    </span>
+                    <button
+                      onClick={() => copy(msg.id, msg.content)}
+                      className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
+                      style={{
+                        color: copiedId === msg.id ? "#1A1714" : "#A89E94",
+                        borderColor: copiedId === msg.id ? "#A89E94" : "#E0D7CC",
+                        background: "transparent",
+                      }}
+                    >
+                      {copiedId === msg.id ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {isLoading && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span
-                className="text-xs uppercase tracking-widest shrink-0"
-                style={{ color: "#7C6F5E", letterSpacing: "0.08em", fontWeight: 600 }}
-              >
-                {hasPost ? `Post v${messages.filter((m) => m.type === "ai").length + 1}` : "Post v1"}
-              </span>
-              <div className="flex-1 h-px" style={{ background: "#E5DDD4" }} />
-            </div>
+          <div className="flex flex-col gap-2" style={{ alignItems: "flex-start" }}>
+            <SenderTag who="Writie" />
             <div
-              className="px-5 py-5 flex items-center gap-3 text-sm rounded border"
+              className="border px-6 py-5 flex items-center gap-3"
               style={{
                 background: "#FFFFFF",
-                borderColor: "#E5DDD4",
-                color: "#B0A89E",
-                fontFamily: "Georgia, 'Times New Roman', serif",
+                borderColor: "#E7E0D7",
+                color: "#B3A89C",
+                fontFamily: SERIF,
+                fontSize: "16px",
+                borderRadius: "16px",
+                borderTopLeftRadius: "5px",
               }}
             >
               <Spinner />
-              <span>{hasPost ? "Refining…" : "Drafting…"}</span>
+              <span>{hasPost ? "Refining…" : "Writing…"}</span>
             </div>
           </div>
         )}
 
         {error && (
-          <p className="text-xs px-1" style={{ color: "#C0392B" }}>
+          <p className="text-sm px-1" style={{ color: "#C0392B" }}>
             {error}
           </p>
         )}
@@ -270,36 +281,28 @@ export default function Home() {
       </div>
 
       {/* Input bar */}
-      <div
-        className="shrink-0 border-t"
-        style={{ background: "#FAF8F5", borderColor: "#E5DDD4" }}
-      >
-        <div
-          className="py-4 flex gap-3 items-center"
-          style={{
-            paddingLeft: "max(2rem, calc((100% - 660px) / 2))",
-            paddingRight: "max(2rem, calc((100% - 660px) / 2))",
-          }}
-        >
+      <div className="shrink-0 border-t" style={{ background: "#FAF8F5", borderColor: "#E7E0D7" }}>
+        <div className="py-5 flex gap-3 items-stretch" style={gutter}>
           <textarea
             ref={inputRef}
             rows={1}
-            className="flex-1 text-sm resize-none leading-relaxed rounded px-4 py-3 border outline-none transition-colors"
+            className="flex-1 text-base resize-none rounded-md px-4 py-3 border outline-none transition-colors"
             style={{
               background: "#FFFFFF",
               color: "#1A1714",
               borderColor: "#D9D0C6",
-              fontFamily: "inherit",
+              fontFamily: SANS,
+              lineHeight: 1.5,
             }}
             placeholder={
               hasPost
-                ? "Refine: e.g. 'make the opener less structured' or 'cut the last paragraph'"
-                : "Paste your rough notes"
+                ? "Refine: 'soften the opener' or 'cut the last line'"
+                : "Paste your rough notes..."
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = "#7C6F5E";
+              e.currentTarget.style.borderColor = "#B5888A";
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = "#D9D0C6";
@@ -314,26 +317,74 @@ export default function Home() {
           <button
             onClick={submit}
             disabled={!input.trim() || isLoading}
-            className="text-sm font-medium rounded px-5 py-3 transition-colors cursor-pointer whitespace-nowrap disabled:cursor-not-allowed"
+            className="text-base font-medium rounded-md px-7 transition-colors cursor-pointer whitespace-nowrap disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{
-              background: !input.trim() || isLoading ? "#E5DDD4" : "#1A1714",
-              color: !input.trim() || isLoading ? "#A89E94" : "#FAF8F5",
+              background: !input.trim() || isLoading ? "#DCD4CA" : hasPost ? "#B5888A" : "#8C7F6F",
+              color: !input.trim() || isLoading ? "#AFA59A" : "#FAF8F5",
             }}
           >
             {isLoading ? (
-              <span className="flex items-center gap-2">
+              <>
                 <Spinner />
                 {hasPost ? "Refining…" : "Generating…"}
-              </span>
+              </>
             ) : hasPost ? (
-              "Refine ⌘↵"
+              <>
+                <PencilIcon /> Refine
+              </>
             ) : (
-              "Generate ⌘↵"
+              "Generate"
             )}
           </button>
         </div>
       </div>
     </main>
+  );
+}
+
+function SenderTag({ who }: { who: "Meera" | "Writie" }) {
+  const isUser = who === "Meera";
+  return (
+    <div
+      className="flex items-center gap-2"
+      style={{ flexDirection: isUser ? "row-reverse" : "row" }}
+    >
+      <span
+        className="flex items-center justify-center rounded-full shrink-0"
+        style={{
+          width: 26,
+          height: 26,
+          background: isUser ? "#6B2333" : "#8C7F6F",
+          color: "#FAF8F5",
+          fontFamily: SERIF,
+          fontSize: "13px",
+          fontWeight: 600,
+          lineHeight: 1,
+        }}
+      >
+        {isUser ? "M" : "W"}
+      </span>
+      <span className="text-xs" style={{ color: "#8A7E6F", letterSpacing: "0.04em", fontWeight: 600 }}>
+        {who}
+      </span>
+    </div>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      className="h-4 w-4 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
   );
 }
 
