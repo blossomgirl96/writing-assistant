@@ -153,11 +153,9 @@ export default function Home() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-wordmark.svg" alt="Meera's musings" style={{ height: 38 }} />
-        {messages.length > 0 && (
-          <Button variant="secondary" size="sm" iconLeft={<PlusIcon />} onClick={newMusing}>
-            New musing
-          </Button>
-        )}
+        <Button variant="secondary" size="sm" iconLeft={<PlusIcon />} onClick={newMusing}>
+          New musing
+        </Button>
       </header>
 
       {/* Conversation */}
