@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="80" viewBox="0 0 320 80" role="img" aria-label="Meera&#39;s musings">
+  <defs>
+    
+  </defs>
+  <text x="6" y="56" class="mark" font-size="56" font-weight="500" fill="#B89A5E">M</text>
+  <circle cx="51.5" cy="50" r="2.4" fill="#B89A5E"></circle>
+  <text x="74" y="40" class="mark" font-size="29" font-weight="500" fill="#EDE6DA">Meera’s</text>
+  <text x="74" y="66" class="mark" font-style="italic" font-size="29" font-weight="500" fill="#B0A89E">musings</text>
+</svg>

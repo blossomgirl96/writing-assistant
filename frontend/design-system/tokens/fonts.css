@@ -1,0 +1,13 @@
+/* ============================================================
+   Meera's Musings — Webfonts
+   Substitution note: no proprietary brand fonts were provided in
+   the source repo (it used Georgia + system-ui). These Google Fonts
+   are chosen to evoke a timeless writer's-room / dark-academia feel.
+   Swap the @import for self-hosted @font-face if brand fonts arrive.
+   - Cormorant Garamond : high-contrast display serif (headlines, hero)
+   - Spectral           : warm screen-reading serif (prose, the "post")
+   - Public Sans        : quiet neutral grotesque (UI labels, buttons)
+   - JetBrains Mono     : typewriter accent (counts, metadata, kbd)
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');

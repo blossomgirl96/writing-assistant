@@ -1,0 +1,77 @@
+/* ============================================================
+   Meera's Musings — Color tokens
+   A warm, candlelit, dark-academia palette grounded in the source
+   repo's parchment + espresso values (#FAF8F5 / #1A1714 / #7C6F5E).
+   Base ramps first, then semantic aliases.
+   ============================================================ */
+
+:root {
+  /* ---- Paper ramp (warm parchment → soft surfaces → hairlines) ---- */
+  --paper-0:   #FFFFFF;   /* pure card / written page          */
+  --paper-50:  #FAF8F5;   /* app background — parchment        */
+  --paper-100: #F4EFE8;   /* raised surface                    */
+  --paper-200: #F0EBE4;   /* sunken surface / quoted input     */
+  --paper-300: #E5DDD4;   /* hairline divider                  */
+  --paper-400: #D9D0C6;   /* resting border                    */
+
+  /* ---- Ink ramp (faint taupe → espresso) ---- */
+  --ink-300: #C4BAB0;   /* faint / disabled text   */
+  --ink-400: #B0A89E;   /* placeholder / hint      */
+  --ink-500: #A89E94;   /* muted icon / meta       */
+  --ink-600: #7C6F5E;   /* secondary text — taupe  */
+  --ink-700: #6B6459;   /* body on paper           */
+  --ink-800: #3A332B;   /* strong body             */
+  --ink-900: #1A1714;   /* espresso — primary ink  */
+
+  /* ---- Oxblood (primary accent — wine / leather binding) ---- */
+  --oxblood-soft: #8A4148;
+  --oxblood:      #722F37;
+  --oxblood-deep: #57232A;
+
+  /* ---- Brass (secondary accent — antique gilt / candle gold) ---- */
+  --brass-soft: #B89A5E;
+  --brass:      #9C7A3C;
+  --brass-deep: #7A5E2C;
+
+  /* ---- Night study (deep surfaces for hero / section heads / slides) ---- */
+  --night-900: #15110D;   /* deepest                */
+  --night-800: #1C1814;   /* primary night surface  */
+  --night-700: #25201A;   /* raised night surface   */
+  --night-600: #322B22;   /* night border / divider */
+  --night-text:  #EDE6DA; /* parchment text on night */
+  --night-muted: #A89E94; /* muted text on night     */
+
+  /* ---- Status (warm, restrained) ---- */
+  --danger:  #A8392E;
+  --success: #5C6B4F;   /* muted sage */
+
+  /* =========================================================
+     Semantic aliases — prefer these in components
+     ========================================================= */
+  --surface-app:    var(--paper-50);
+  --surface-card:   var(--paper-0);
+  --surface-raised: var(--paper-100);
+  --surface-sunken: var(--paper-200);
+  --surface-night:  var(--night-800);
+
+  --text-strong: var(--ink-900);
+  --text-body:   var(--ink-800);
+  --text-muted:  var(--ink-600);
+  --text-faint:  var(--ink-400);
+  --text-on-accent: var(--paper-50);
+  --text-on-night:  var(--night-text);
+
+  --border-hair: var(--paper-300);
+  --border:      var(--paper-400);
+  --border-strong: var(--ink-500);
+  --border-focus:  var(--ink-600);
+
+  --accent:        var(--oxblood);
+  --accent-hover:  var(--oxblood-deep);
+  --accent-soft:   var(--oxblood-soft);
+  --gold:          var(--brass);
+  --gold-soft:     var(--brass-soft);
+
+  --link:       var(--oxblood);
+  --link-hover: var(--oxblood-deep);
+}

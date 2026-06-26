@@ -1,0 +1,37 @@
+/* ============================================================
+   Meera's Musings — Spacing & layout tokens
+   Calm 4px base rhythm; generous reading measure.
+   ============================================================ */
+
+:root {
+  /* ---- Spacing scale (4px base) ---- */
+  --space-0:  0;
+  --space-1:  0.25rem;  /* 4px  */
+  --space-2:  0.5rem;   /* 8px  */
+  --space-3:  0.75rem;  /* 12px */
+  --space-4:  1rem;     /* 16px */
+  --space-5:  1.5rem;   /* 24px */
+  --space-6:  2rem;     /* 32px */
+  --space-7:  2.5rem;   /* 40px */
+  --space-8:  3rem;     /* 48px */
+  --space-9:  4rem;     /* 64px */
+  --space-10: 5.5rem;   /* 88px */
+
+  /* ---- Reading measures ---- */
+  --measure-prose: 38rem;   /* ~660px — the writing column      */
+  --measure-narrow: 26rem;  /* short forms / captions           */
+  --measure-wide: 72rem;    /* full app shell                   */
+
+  /* ---- Radii (gentle, paper-like; nothing pill-round) ---- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ---- Border widths ---- */
+  --border-thin: 1px;
+  --border-med:  1.5px;
+  --border-thick: 2px;
+}

@@ -1,18 +1,26 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+// @ts-ignore
+import { Button } from "../design-system/components/core/Button";
+// @ts-ignore
+import { Card } from "../design-system/components/core/Card";
+// @ts-ignore
+import { TextField } from "../design-system/components/core/TextField";
+// @ts-ignore
+import { RuledHeading } from "../design-system/components/core/RuledHeading";
+// @ts-ignore
+import { Badge } from "../design-system/components/core/Badge";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const STORAGE_KEY = "linkedin-assistant-session";
-
-const SERIF = "var(--font-serif), Georgia, 'Times New Roman', serif";
-const SANS = "var(--font-geist-sans), system-ui, -apple-system, sans-serif";
 
 type Message = {
   id: string;
   type: "user" | "ai";
   content: string;
   label: string;
+  version?: number;
   timestamp: number;
 };
 
@@ -24,7 +32,6 @@ export default function Home() {
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     try {
@@ -97,12 +104,11 @@ export default function Home() {
         ({ post } = await res.json());
       }
 
-      pushMessage({ type: "ai", content: post, label: `Draft v${nextVersion}` });
+      pushMessage({ type: "ai", content: post, label: `Draft v${nextVersion}`, version: nextVersion });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setIsLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 80);
     }
   };
 
@@ -116,274 +122,301 @@ export default function Home() {
     setMessages([]);
     setInput("");
     setError("");
-    setTimeout(() => inputRef.current?.focus(), 80);
   };
 
   const hasPost = messages.some((m) => m.type === "ai");
   const isEmpty = messages.length === 0 && !isLoading;
+  const draftCount = messages.filter((m) => m.type === "ai").length;
 
   if (!hydrated) return null;
 
-  const gutter = {
-    paddingLeft: "max(2rem, calc((100% - 760px) / 2))",
-    paddingRight: "max(2rem, calc((100% - 760px) / 2))",
+  const column = {
+    width: "100%",
+    maxWidth: "var(--measure-prose)",
+    margin: "0 auto",
+    padding: "0 var(--space-6)",
   };
 
   return (
-    <main className="h-screen flex flex-col" style={{ background: "#FAF8F5", fontFamily: SANS }}>
+    <main style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--surface-app)" }}>
       {/* Header */}
       <header
-        className="px-8 py-4 flex items-center justify-between shrink-0 border-b"
-        style={{ background: "#FAF8F5", borderColor: "#E7E0D7" }}
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "var(--space-4) var(--space-7)",
+          borderBottom: "1px solid var(--border-hair)",
+          background: "var(--surface-app)",
+        }}
       >
-        <div className="flex items-center gap-3">
-          <span
-            className="leading-none"
-            style={{ fontFamily: SERIF, fontSize: "30px", fontWeight: 600, color: "#6B2333" }}
-          >
-            M
-          </span>
-          <span className="flex flex-col leading-tight" style={{ fontFamily: SERIF }}>
-            <span style={{ fontSize: "15px", color: "#2B2620" }}>Meera&rsquo;s</span>
-            <span style={{ fontSize: "15px", fontStyle: "italic", color: "#8A7E6F" }}>musings</span>
-          </span>
-        </div>
-        <button
-          onClick={newMusing}
-          className="text-sm px-4 py-2 rounded-md cursor-pointer border transition-colors flex items-center gap-1.5"
-          style={{ color: "#5C5247", borderColor: "#D9D0C6", background: "transparent" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#1A1714";
-            e.currentTarget.style.borderColor = "#A89E94";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#5C5247";
-            e.currentTarget.style.borderColor = "#D9D0C6";
-          }}
-        >
-          <span style={{ fontSize: "16px", lineHeight: 1 }}>+</span> New musing
-        </button>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-wordmark.svg" alt="Meera's musings" style={{ height: 38 }} />
+        {messages.length > 0 && (
+          <Button variant="secondary" size="sm" iconLeft={<PlusIcon />} onClick={newMusing}>
+            New musing
+          </Button>
+        )}
       </header>
 
       {/* Conversation */}
-      <div className="flex-1 overflow-y-auto py-12 flex flex-col gap-6" style={gutter}>
-        {isEmpty && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center min-h-[320px]">
-            <h1 style={{ fontFamily: SERIF, fontSize: "44px", color: "#2B2620", lineHeight: 1.1 }}>
-              What&rsquo;s on your mind?
-            </h1>
-            <p
-              className="mt-6 max-w-md"
-              style={{ fontFamily: SERIF, fontSize: "18px", color: "#9C8F81", lineHeight: 1.7 }}
-            >
-              Paste the rough version below &mdash; bullet points, a half-thought, the mess. Every
-              draft stays on the page.
-            </p>
-          </div>
-        )}
-
-        {messages.map((msg) => {
-          const isUser = msg.type === "user";
-          const over = msg.content.length > 3000;
-          return (
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            ...column,
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-8)",
+            paddingTop: "var(--space-10)",
+            paddingBottom: "var(--space-10)",
+          }}
+        >
+          {isEmpty && (
             <div
-              key={msg.id}
-              className="flex flex-col gap-2"
-              style={{ alignItems: isUser ? "flex-end" : "flex-start" }}
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                gap: "var(--space-4)",
+                minHeight: 320,
+              }}
             >
-              <SenderTag who={isUser ? "Meera" : "Writie"} />
+              <div
+                style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "var(--text-2xl)",
+                  color: "var(--text-strong)",
+                  lineHeight: 1.1,
+                }}
+              >
+                What&rsquo;s on your mind?
+              </div>
+              <p
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: "var(--text-md)",
+                  color: "var(--text-muted)",
+                  lineHeight: 1.7,
+                  maxWidth: 360,
+                  margin: 0,
+                }}
+              >
+                Paste the rough version below &mdash; bullet points, a half-thought, the mess. Every
+                draft stays on the page.
+              </p>
+            </div>
+          )}
 
-              {isUser ? (
-                <div
-                  className="whitespace-pre-wrap px-5 py-4"
-                  style={{
-                    background: "#ECE4DA",
-                    color: "#7E7468",
-                    fontSize: "16px",
-                    lineHeight: 1.7,
-                    maxWidth: "82%",
-                    borderRadius: "16px",
-                    borderTopRightRadius: "5px",
-                  }}
-                >
-                  {msg.content}
-                </div>
-              ) : (
-                <div
-                  className="border px-6 py-5"
-                  style={{
-                    background: "#FFFFFF",
-                    borderColor: "#E7E0D7",
-                    maxWidth: "88%",
-                    borderRadius: "16px",
-                    borderTopLeftRadius: "5px",
-                  }}
-                >
+          {messages.map((msg) => {
+            const isUser = msg.type === "user";
+            const over = msg.content.length > 3000;
+            const isPolished = (msg.version ?? 0) >= 2;
+
+            return (
+              <div key={msg.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <RuledHeading
+                  label={msg.label}
+                  tone={isUser ? "muted" : "accent"}
+                  meta={!isUser ? `${msg.content.length.toLocaleString()} / 3,000` : undefined}
+                />
+
+                {isUser ? (
                   <div
-                    className="whitespace-pre-wrap"
-                    style={{ color: "#3A332B", fontSize: "16px", lineHeight: 1.75, fontFamily: SERIF }}
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "var(--text-sm)",
+                      lineHeight: "var(--leading-normal)",
+                      color: "var(--ink-700)",
+                      whiteSpace: "pre-wrap",
+                      background: "var(--surface-sunken)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "var(--space-4) var(--space-5)",
+                    }}
                   >
                     {msg.content}
                   </div>
-                  <div className="flex items-center justify-between gap-4 mt-4">
-                    <span
-                      className="text-xs tabular-nums"
-                      style={{ color: over ? "#C0392B" : "#C4BAB0" }}
-                    >
-                      {msg.content.length.toLocaleString()} / 3,000
-                    </span>
-                    <button
-                      onClick={() => copy(msg.id, msg.content)}
-                      className="text-xs px-3 py-1.5 rounded cursor-pointer border transition-colors"
-                      style={{
-                        color: copiedId === msg.id ? "#1A1714" : "#A89E94",
-                        borderColor: copiedId === msg.id ? "#A89E94" : "#E0D7CC",
-                        background: "transparent",
-                      }}
-                    >
-                      {copiedId === msg.id ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                ) : (
+                  <Card tone="paper" elevation="sm" padding="lg">
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--space-4)" }}>
+                      <Badge
+                        tone={isPolished ? "gold" : "accent"}
+                        variant={isPolished ? "solid" : "soft"}
+                      >
+                        {isPolished ? "Polished" : "Draft"}
+                      </Badge>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "var(--text-2xs)",
+                          color: "var(--text-faint)",
+                        }}
+                      >
+                        v{msg.version}
+                      </span>
+                      {over && (
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "var(--text-2xs)",
+                            color: "var(--danger)",
+                          }}
+                        >
+                          over limit
+                        </span>
+                      )}
+                    </div>
+                    <div className="mm-prose" style={{ whiteSpace: "pre-wrap" }}>
+                      {msg.content.split("\n\n").map((para, i) => (
+                        <p key={i}>{para}</p>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-4)" }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copy(msg.id, msg.content)}
+                        iconLeft={
+                          copiedId === msg.id ? (
+                            <CheckIcon style={{ color: "var(--success)" }} />
+                          ) : (
+                            <CopyIcon />
+                          )
+                        }
+                      >
+                        {copiedId === msg.id ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            );
+          })}
 
-        {isLoading && (
-          <div className="flex flex-col gap-2" style={{ alignItems: "flex-start" }}>
-            <SenderTag who="Writie" />
-            <div
-              className="border px-6 py-5 flex items-center gap-3"
+          {isLoading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <RuledHeading label={`Draft v${draftCount + 1}`} />
+              <Card tone="paper" elevation="sm" padding="lg">
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    color: "var(--text-muted)",
+                    fontFamily: "var(--font-serif)",
+                    fontSize: "var(--text-md)",
+                  }}
+                >
+                  <span style={{ color: "var(--accent)" }}>
+                    <Spinner />
+                  </span>
+                  {hasPost ? "Refining the line…" : "Finding the thread…"}
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {error && (
+            <p
               style={{
-                background: "#FFFFFF",
-                borderColor: "#E7E0D7",
-                color: "#B3A89C",
-                fontFamily: SERIF,
-                fontSize: "16px",
-                borderRadius: "16px",
-                borderTopLeftRadius: "5px",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--text-sm)",
+                color: "var(--danger)",
+                margin: 0,
               }}
             >
-              <Spinner />
-              <span>{hasPost ? "Refining…" : "Writing…"}</span>
-            </div>
-          </div>
-        )}
+              {error}
+            </p>
+          )}
 
-        {error && (
-          <p className="text-sm px-1" style={{ color: "#C0392B" }}>
-            {error}
-          </p>
-        )}
-
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      {/* Input bar */}
-      <div className="shrink-0 border-t" style={{ background: "#FAF8F5", borderColor: "#E7E0D7" }}>
-        <div className="py-5 flex gap-3 items-stretch" style={gutter}>
-          <textarea
-            ref={inputRef}
-            rows={1}
-            className="flex-1 text-base resize-none rounded-md px-4 py-3 border outline-none transition-colors"
-            style={{
-              background: "#FFFFFF",
-              color: "#1A1714",
-              borderColor: "#D9D0C6",
-              fontFamily: SANS,
-              lineHeight: 1.5,
-            }}
-            placeholder={
-              hasPost
-                ? "Refine: 'soften the opener' or 'cut the last line'"
-                : "Paste your rough notes..."
-            }
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = "#B5888A";
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = "#D9D0C6";
-            }}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                e.preventDefault();
-                submit();
+      {/* Composer */}
+      <div
+        style={{
+          flexShrink: 0,
+          borderTop: "1px solid var(--border-hair)",
+          background: "var(--surface-app)",
+        }}
+      >
+        <div
+          style={{
+            ...column,
+            padding: "var(--space-4) var(--space-6)",
+            display: "flex",
+            gap: "var(--space-3)",
+            alignItems: "flex-end",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <TextField
+              multiline
+              rows={1}
+              value={input}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              placeholder={
+                hasPost
+                  ? "Refine: 'soften the opener' or 'cut the last line'"
+                  : "Paste your rough notes…"
               }
-            }}
-          />
-          <button
+            />
+          </div>
+          <Button
+            variant={hasPost ? "accent" : "primary"}
             onClick={submit}
             disabled={!input.trim() || isLoading}
-            className="text-base font-medium rounded-md px-7 transition-colors cursor-pointer whitespace-nowrap disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            style={{
-              background: !input.trim() || isLoading ? "#DCD4CA" : hasPost ? "#B5888A" : "#8C7F6F",
-              color: !input.trim() || isLoading ? "#AFA59A" : "#FAF8F5",
-            }}
+            iconLeft={isLoading ? <Spinner /> : hasPost ? <PenIcon /> : null}
           >
-            {isLoading ? (
-              <>
-                <Spinner />
-                {hasPost ? "Refining…" : "Generating…"}
-              </>
-            ) : hasPost ? (
-              <>
-                <PencilIcon /> Refine
-              </>
-            ) : (
-              "Generate"
-            )}
-          </button>
+            {isLoading ? "Working…" : hasPost ? "Refine" : "Generate"}
+          </Button>
         </div>
       </div>
     </main>
   );
 }
 
-function SenderTag({ who }: { who: "Meera" | "Writie" }) {
-  const isUser = who === "Meera";
+function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <div
-      className="flex items-center gap-2"
-      style={{ flexDirection: isUser ? "row-reverse" : "row" }}
-    >
-      <span
-        className="flex items-center justify-center rounded-full shrink-0"
-        style={{
-          width: 26,
-          height: 26,
-          background: isUser ? "#6B2333" : "#8C7F6F",
-          color: "#FAF8F5",
-          fontFamily: SERIF,
-          fontSize: "13px",
-          fontWeight: 600,
-          lineHeight: 1,
-        }}
-      >
-        {isUser ? "M" : "W"}
-      </span>
-      <span className="text-xs" style={{ color: "#8A7E6F", letterSpacing: "0.04em", fontWeight: 600 }}>
-        {who}
-      </span>
-    </div>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
   );
 }
 
-function PencilIcon() {
+function PenIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg
-      className="h-4 w-4 shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+
+function CopyIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }
@@ -391,17 +424,14 @@ function PencilIcon() {
 function Spinner() {
   return (
     <svg
-      className="animate-spin h-4 w-4 inline-block shrink-0"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
+      width="15"
+      height="15"
       viewBox="0 0 24 24"
+      fill="none"
+      style={{ animation: "spin 0.8s linear infinite" }}
     >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-      />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.2" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }
